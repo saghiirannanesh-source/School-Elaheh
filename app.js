@@ -1,9 +1,116 @@
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const menu=$('#menu'),nav=$('#nav');menu?.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',open)});$$('#nav a').forEach(a=>a.onclick=()=>{nav.classList.remove('open');menu?.setAttribute('aria-expanded','false')});
-const toast=$('#toast');function showToast(t){toast.textContent=t;toast.classList.add('show');clearTimeout(window.tt);window.tt=setTimeout(()=>toast.classList.remove('show'),2400)};$$('[data-toast]').forEach(a=>a.onclick=e=>{e.preventDefault();showToast(a.dataset.toast)});
-const qs=[['۳ سیب داریم و ۲ سیب دیگر اضافه می‌کنیم. چند سیب داریم؟',['۴','۵','۶'],'۵'],['کدام گزینه یک رنگ است؟',['بنفش','کتاب','پروانه'],'بنفش'],['۵ ستاره داریم و ۱ ستاره هدیه می‌گیریم. چند ستاره داریم؟',['۶','۷','۴'],'۶']];let i=0,score=0;const q=$('#question'),opts=$('#options'),msg=$('#message'),next=$('#next'),scoreEl=$('#score'),bar=$('#bar');const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
-function render(){q.textContent=qs[i][0];opts.innerHTML=qs[i][1].map(x=>`<button data-a="${x}">${x}</button>`).join('');msg.textContent='یک گزینه را انتخاب کن 🌸';next.classList.add('hidden');bar.style.width=`${(i+1)/qs.length*100}%`;$$('#options button').forEach(b=>b.onclick=()=>answer(b))}function answer(b){const all=$$('#options button'),right=qs[i][2];all.forEach(x=>x.disabled=true);if(b.dataset.a===right){b.classList.add('correct');score+=10;scoreEl.textContent=fa(score);msg.textContent='آفرین! پروانه یک قدم جلو رفت 🦋✨'}else{b.classList.add('wrong');all.find(x=>x.dataset.a===right)?.classList.add('correct');msg.textContent='اشکالی ندارد؛ یک بار دیگر فکر کن 🌱'}next.classList.remove('hidden')}
-next.onclick=()=>{i++;if(i>=qs.length){q.textContent='گنجینه پیدا شد! 🏆';opts.innerHTML='';msg.textContent=`امتیاز نهایی تو ${fa(score)} است. این فقط شروع ماجراجویی الهه بود.`;next.textContent='شروع دوباره';next.onclick=()=>{i=0;score=0;scoreEl.textContent='۰';next.textContent='سؤال بعدی';next.onclick=advance;render()};bar.style.width='100%'}else render()};function advance(){i++;if(i>=qs.length){q.textContent='گنجینه پیدا شد! 🏆';opts.innerHTML='';msg.textContent=`امتیاز نهایی تو ${fa(score)} است.`;next.textContent='شروع دوباره';next.onclick=()=>{i=0;score=0;scoreEl.textContent='۰';next.textContent='سؤال بعدی';next.onclick=advance;render()};return}render()};render();
-const rev=$$('.reveal');if('IntersectionObserver'in window){const ob=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');ob.unobserve(e.target)}}),{threshold:.08});rev.forEach(x=>ob.observe(x))}else rev.forEach(x=>x.classList.add('show'));
-const links=$$('#nav a');if('IntersectionObserver'in window){const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')===`#${e.target.id}`))}),{rootMargin:'-25% 0px -65%'});['school','learn','game','mag','gallery','parents'].forEach(id=>{const x=document.getElementById(id);if(x)so.observe(x)})}
-const top=$('#top');window.addEventListener('scroll',()=>top.classList.toggle('show',scrollY>500),{passive:true});top.onclick=()=>scrollTo({top:0,behavior:'smooth'});
+
+// Navigation
+const menu=$('#menu'),nav=$('#nav');
+menu?.addEventListener('click',()=>{const open=nav.classList.toggle('open');menu.setAttribute('aria-expanded',String(open));});
+$$('#nav a').forEach(a=>a.onclick=()=>{nav.classList.remove('open');menu?.setAttribute('aria-expanded','false');});
+
+// Toasts
+const toast=$('#toast');
+function showToast(text){if(!toast)return;toast.textContent=text;toast.classList.add('show');clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>toast.classList.remove('show'),2600);}
+$$('[data-toast]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();showToast(a.dataset.toast);}));
+
+// Accessibility: skip link
+const skip=$('#skip');
+skip?.addEventListener('click',()=>document.querySelector('#home')?.focus());
+
+// Game registry. New games can be added without changing the surrounding site.
+const games={
+  adventure:{
+    title:'ماجراجویی پروانه‌ی الهه',
+    subtitle:'پرسش‌های کوتاه، امتیازهای کوچک، یک سفر بزرگ 🦋',
+    questions:[
+      ['۳ سیب داریم و ۲ سیب دیگر اضافه می‌کنیم. چند سیب داریم؟',['۴','۵','۶'],'۵'],
+      ['کدام گزینه یک رنگ است؟',['بنفش','کتاب','پروانه'],'بنفش'],
+      ['۵ ستاره داریم و ۱ ستاره هدیه می‌گیریم. چند ستاره داریم؟',['۶','۷','۴'],'۶'],
+      ['کدام گزینه یک جانور است؟',['مداد','پروانه','دفتر'],'پروانه']
+    ]
+  },
+  focus:{
+    title:'شکارچیِ تفاوت‌ها',
+    subtitle:'با دقت نگاه کن و گزینه‌ای را پیدا کن که متفاوت است 🔎',
+    questions:[
+      ['کدام مورد با بقیه متفاوت است؟',['سیب','موز','مداد'],'مداد'],
+      ['کدام کلمه با بقیه هم‌گروه نیست؟',['کتاب','دفتر','نان'],'نان'],
+      ['کدام شکل با بقیه فرق دارد؟',['●','●','▲'],'▲']
+    ]
+  }
+};
+
+const q=$('#question'),opts=$('#options'),msg=$('#message'),next=$('#next'),scoreEl=$('#score'),bar=$('#bar'),gameTitle=$('#game-title'),gameSub=$('#game-sub'),gameTabs=$$('#game-tabs button');
+let activeGame='adventure',index=0,score=0,answered=false;
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+function current(){return games[activeGame].questions[index];}
+function updateScore(){if(scoreEl)scoreEl.textContent=fa(score);}
+function renderGame(){
+  const data=games[activeGame];
+  gameTitle&&(gameTitle.textContent=data.title);
+  gameSub&&(gameSub.textContent=data.subtitle);
+  const [question,choices]=current();
+  if(q)q.textContent=question;
+  if(opts)opts.innerHTML=choices.map(x=>`<button type="button" data-a="${x}">${x}</button>`).join('');
+  if(msg)msg.textContent='یک گزینه را انتخاب کن 🌸';
+  next?.classList.add('hidden');
+  if(bar)bar.style.width=`${((index+1)/data.questions.length)*100}%`;
+  answered=false;
+  $$('#options button').forEach(b=>b.addEventListener('click',()=>answer(b)));
+}
+function answer(button){
+  if(answered)return;
+  answered=true;
+  const buttons=$$('#options button'),right=current()[2];
+  buttons.forEach(b=>b.disabled=true);
+  if(button.dataset.a===right){button.classList.add('correct');score+=10;updateScore();msg&&(msg.textContent='آفرین! یک قدم دیگر جلو رفتی 🦋✨');}
+  else{button.classList.add('wrong');buttons.find(x=>x.dataset.a===right)?.classList.add('correct');msg&&(msg.textContent='اشکالی ندارد؛ دوباره نگاه کن 🌱');}
+  next?.classList.remove('hidden');
+}
+function finishGame(){
+  if(q)q.textContent='ماموریت با موفقیت کامل شد! 🏆';
+  if(opts)opts.innerHTML='';
+  if(msg)msg.textContent=`امتیاز این دور: ${fa(score)}. آماده‌ای یک مسیر تازه را امتحان کنی؟`;
+  if(next){next.textContent='شروع دوباره';next.classList.remove('hidden');}
+  if(bar)bar.style.width='100%';
+}
+function advance(){
+  index++;
+  if(index>=games[activeGame].questions.length){finishGame();return;}
+  renderGame();
+}
+next?.addEventListener('click',()=>{
+  if(index>=games[activeGame].questions.length-1){index=0;score=0;updateScore();next.textContent='سؤال بعدی';renderGame();return;}
+  next.textContent='سؤال بعدی';advance();
+});
+gameTabs.forEach(tab=>tab.addEventListener('click',()=>{
+  activeGame=tab.dataset.game;index=0;score=0;updateScore();
+  gameTabs.forEach(t=>t.classList.toggle('active',t===tab));
+  renderGame();
+}));
+renderGame();
+
+// Small content spotlight carousel
+const spotlight=[
+  ['🌱','امروز برای یک کودک، یک سؤال خوب بساز.','یک سؤال کوتاه می‌تواند جرقه‌ی کنجکاوی بزرگی باشد.'],
+  ['🎨','یادگیری را لمس‌کردنی کنیم.','کارهای هنری، پروژه‌ها و بازی‌ها مسیرهای دیگری برای فهمیدن هستند.'],
+  ['💗','خانه و مدرسه یک تیم‌اند.','ارتباط کوتاه و محترمانه، گاهی از یک پیام طولانی اثرگذارتر است.']
+];
+let spotlightIndex=0;
+function paintSpotlight(){const icon=$('#spot-icon'),title=$('#spot-title'),text=$('#spot-text');if(!icon||!title||!text)return;const x=spotlight[spotlightIndex];icon.textContent=x[0];title.textContent=x[1];text.textContent=x[2];}
+$('#spot-next')?.addEventListener('click',()=>{spotlightIndex=(spotlightIndex+1)%spotlight.length;paintSpotlight();});
+paintSpotlight();
+
+// Reveal animations
+const rev=$$('.reveal');
+if('IntersectionObserver'in window){const ob=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');ob.unobserve(e.target)}}),{threshold:.08});rev.forEach(x=>ob.observe(x));}else rev.forEach(x=>x.classList.add('show'));
+
+// Active navigation section
+const links=$$('#nav a');
+if('IntersectionObserver'in window){const so=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')===`#${e.target.id}`));}),{rootMargin:'-25% 0px -65%'});['school','learn','game','mag','gallery','parents'].forEach(id=>{const x=document.getElementById(id);if(x)so.observe(x);});}
+
+// Back to top
+const top=$('#top');window.addEventListener('scroll',()=>top?.classList.toggle('show',scrollY>500),{passive:true});top?.addEventListener('click',()=>scrollTo({top:0,behavior:'smooth'}));
+
+// Gallery lightbox, intentionally dependency-free
+const galleryItems=$$('.gallery-item');const lightbox=$('#lightbox');const lightboxTitle=$('#lightbox-title');
+galleryItems.forEach(item=>item.addEventListener('click',()=>{lightboxTitle&&(lightboxTitle.textContent=item.dataset.title||'گالری الهه');lightbox?.classList.add('show');lightbox?.setAttribute('aria-hidden','false');}));
+function closeLightbox(){lightbox?.classList.remove('show');lightbox?.setAttribute('aria-hidden','true');}
+$('#lightbox-close')?.addEventListener('click',closeLightbox);lightbox?.addEventListener('click',e=>{if(e.target===lightbox)closeLightbox();});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
